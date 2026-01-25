@@ -7,7 +7,9 @@ metadata/
 
 sera/datagen/train/dataset_cache
 sera/datagen/train/wandb
-sera.egg_info/
+*.egg-info/
+*.egg-info
+**/*.egg-inf
 
 # Python cache
 __pycache__/

@@ -1,5 +1,0 @@
-swesmith==0.0.7
-hydra-core==1.4.0.dev1
-omegaconf>=2.4.0.dev4
-anthropic==0.76.0
-networkx==3.6.1
