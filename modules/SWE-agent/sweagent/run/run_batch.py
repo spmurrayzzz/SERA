@@ -87,74 +87,14 @@ from subprocess import CalledProcessError
 from urllib.error import HTTPError
 from asyncio import TimeoutError
 
-CHECK_SYNTHETIC_TRAJ_PROMPT = """
-<fix_steps>
-{{agent_steps}}
-</fix_steps>
-
-<initial_prompt>
-{{initial_prompt}}
-</initial_prompt>
-
-<fix_steps> describes the steps an AI agent took to fix a bug described by <initial_prompt>.
-Your task is to judge if the final fix is a valid fix aligning with <initial_prompt>.
-Write your final answer as a yes or no in <output> tags.
-"""
-
-UNIVERSAL_INSTANCE_PROMPT = """
-
-<fix_steps>
-{{agent_steps}}
-</fix_steps>
-
-<fix_steps> describes a sequence of edits applied to solve a bug. An example PR issue of a different bug is shown in <demonstration_issue>.
-Your task is to create a realistic PR that follows the format of the example PR in <demonstration_issue>.
-
-Guidelines:
-- Mimic the style and structure of the demonstration issue. If the demonstration is
-not well structured, your output should also be not well structured. If the demonstration
-use improper or no markdown, your output should also use improper or no markdown. If
-the demonstrations are short/long, your output should also be short/long (if possible). If
-the demonstrations include human ”flavor text” or ”fluff”, your output should also include
-human ”flavor text” or ”fluff”. Do this even if it conflicts with your default behavior of trying
-to be extremely concise and helpful.
-- DO NOT explain the fix/what caused the bug itself, focus on how to reproduce the issue it
-introduces.
-- Do not mention pytest or what exact test failed. Instead, generate a realistic issue.
-- If possible, include information about how to reproduce the issue. An ideal reproduction
-script should raise an error or print an unexpected output together with the expected output.
-However, still include this information in a style very similar to the demonstration issue.
-- Do not describe the bug as already fixed.
-- Do not mention you are an AI assistant if the demonstration issue contains any identity information. Make up a random name.
-- It is essential to NOT include any reproduction script or source code snippets if the demonstration issue does not. If it does, make sure to match the demonstration issue's code format (e.g. whether it pastes code directly or uses ```python ```).
-
-<demonstration_issue>
-{{demonstration_issue}}
-</demonstration_issue>
-
-Write your generated PR in <output> tags.
-"""
-
-with open("initial_issue_prompts.json", "r") as f:
-    INITIAL_PROMPT_OPTIONS = json.load(f)
-
-with open("sphinx_created_prompts.json", "r") as f:
-    SPHINX_PROMPT_OPTIONS = json.load(f)
-
-with open("universal_prompt_format.txt", "r") as f:
-    UNIVERSAL_FORMAT_TXT = f.read()
-
-with open("swebench_django_prs.json", "r") as f:
-    DJANGO_DEMONSTRATION_ISSUES = json.load(f)
-
-with open("swebench_sympy_prs.json", "r") as f:
-    SYMPY_DEMONSTRATION_ISSUES = json.load(f)
-
-with open("swebench_sphinx_prs.json", "r") as f:
-    SPHINX_DEMONSTRATION_ISSUES = json.load(f)
-
-with open("swebench_all_prs.json", "r") as f:
-    ALL_DEMONSTRATION_ISSUES = json.load(f)
+### Changes
+from sera.constants import (
+    SYNTHETIC_TRAJ_PROMPT, 
+    CHECK_SYNTHETIC_TRAJ_PROMPT, 
+    ROLLOUT_ONE_PROMPTS,
+    SWEBENCH_PRS
+)
+from sera.utils import pp_query, pp_regex
 
 def parse_trajectory(trajectory):
     """
@@ -175,6 +115,7 @@ def parse_trajectory(trajectory):
         formatted_steps.append(formatted_step)
     # print(formatted_steps)
     return formatted_steps
+### Changes
 
 class RunBatchConfig(BaseSettings, cli_implicit_flags=False):
     instances: BatchInstanceSourceConfig = Field(description="Instances to run.")
@@ -203,12 +144,16 @@ class RunBatchConfig(BaseSettings, cli_implicit_flags=False):
     keep_id: str = ""
     skip_id: str = ""
     """
-    Comma separated strings of instance ids/subids to keep or skip
+    Comma separated strings of instance ids/subids to keep or skip to run on subset of instances
     """
-
     pipeline: bool = False
+    """
+    To run rollout one or not
+    """
     pipeline_repo: str = ""
-    specialized_prompts: bool = False
+    """
+    A name of a swebench repo to specialize on OR a filepath to a list of custom PR issues.
+    """
     ### Changes
 
     # pydantic config
@@ -265,7 +210,6 @@ class RunBatch:
         skip_id: str = "",
         pipeline: bool = False,
         pipeline_repo: str = "",
-        specialized_prompts: bool = False
         ### Changes
     ):
         """Note: When initializing this class, make sure to add the hooks that are required by your actions.
@@ -290,8 +234,6 @@ class RunBatch:
             id_="progress",
             filter=lambda name: "swea-run" in name or "config" in name,
         )
-        if runs_per_instance > 1:
-            instances = replicate_instances(instances=instances, count=runs_per_instance)
         self.instances = instances
         self.agent_config = agent_config
         self.output_dir = output_dir
@@ -311,9 +253,30 @@ class RunBatch:
         self._skip_id = skip_id.split(",")
         self._pipeline = pipeline
         self._pipeline_repo = pipeline_repo
-        self._specialized_prompts = specialized_prompts
+        
+        if self._pipeline and self._pipeline_repo:
+            if os.path.isfile(self._pipeline_repo):
+                try:
+                    with open(self._pipeline_repo, "r") as f:
+                        self._demonstration_issues = json.load(f)
+                except json.JSONDecodeError as e:
+                    print("Invalid json file for demonstration issues, using SWE Bench PRs instead")
+                    self._demonstration_issues = [v for k, v in SWEBENCH_PRS.items()]
+                if not self._demonstration_issues: # Handle empty list
+                    self._demonstration_issues = [v for k, v in SWEBENCH_PRS.items()]
+            else:
+                for k, v in SWEBENCH_PRS.items():
+                    self._demonstration_issues = [v for k, v in SWEBENCH_PRS.items() if self._pipeline_repo.lower() in k]
+                if not self._demonstration_issues:
+                    print(f"{self._pipeline_repo} is either not a file or not a valid identifier in SWE Bench, setting demostration PRs to all SWE Bench PRs")
+                    self._demonstration_issues = [v for k, v in SWEBENCH_PRS.items()]
+        elif self._pipeline:
+            self._demonstration_issues = [v for k, v in SWEBENCH_PRS.items()]
+        else:
+            self._demonstration_issues = None
+        if self._demonstration_issues:
+            print(f"{len(self._demonstration_issues)} issues loaded\nExample: {self._demonstration_issues[0]}")
         ### Changes
-
     @property
     def _model_id(self) -> str:
         try:
@@ -322,7 +285,7 @@ class RunBatch:
             return "unknown"
 
     @classmethod
-    def from_config(cls, config: RunBatchConfig | CustomRunBatchConfig) -> Self:
+    def from_config(cls, config: RunBatchConfig) -> Self:
         load_environment_variables(config.env_var_path)
         config.set_default_output_dir()
         config.output_dir.mkdir(parents=True, exist_ok=True)
@@ -353,7 +316,6 @@ class RunBatch:
             skip_id=config.skip_id,
             pipeline=config.pipeline,
             pipeline_repo=config.pipeline_repo,
-            specialized_prompts=config.specialized_prompts
             ### Changes
         )
         if isinstance(config.instances, SWEBenchInstances) and config.instances.evaluate:
@@ -401,6 +363,8 @@ class RunBatch:
                     self.logger.info("Stopping loop over instances")
                     break
 
+    ### Changes
+    # We modify this to retry the trajectory based on failures related to OS, CPU, network instability
     def main_multi_worker(self) -> None:
         add_logger_names_to_stream_handlers()
         # Set all stream handlers to WARNING and set everything where we want to have
@@ -493,7 +457,7 @@ class RunBatch:
                 self.logger.error(f"Signalling to retry {instance.problem_statement.id}...")
                 return_instance_for_retry = True
         else:
-            if self._get_call_paths or not run_on_this:
+            if not run_on_this:
                 self._progress_manager.on_instance_end(
                     instance.problem_statement.id, exit_status=None
                 )
@@ -526,65 +490,16 @@ class RunBatch:
         return tool
 
     ### Changes
-    def pp_regex(self, text, re_string=r"<output>(.*?)</output>"):
-        matches = re.findall(re_string, text, re.DOTALL)
-        if len(matches) == 0:
-            return None
-        return matches
-
-    def pp_query(self, system, prompt, model, base_url="", api_key="", max_tokens=4096, retries=0, args={}):
-        # Create OpenAI-compatible client
-        if base_url != "":
-            client = OpenAI(
-                base_url=base_url,
-                api_key=api_key
-            )
-            max_tokens = max_tokens
-        else:
-            client = OpenAI()
-            max_tokens = max_tokens
-        if len(args) > 0:
-            task_prompt = Template(prompt).render(**args)
-            # print(task_prompt)
-        else:
-            task_prompt = prompt
-        # print("Prompt:", task_prompt)
-        # Make a request
-        if model.startswith("openai/"):
-            model = model[len("openai/"):]
-        while True:
-            try:
-                # print(task_prompt)
-                completion = client.chat.completions.create(
-                    model=model,
-                    temperature=0.6,
-                    max_tokens=max_tokens,
-                    messages=[
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": task_prompt}
-                    ]
-                )
-                break
-            except Exception as e:
-                # print("=== ERROR ===")
-                if retries == 0:
-                    raise
-                time.sleep(30)
-                retries -= 1
-        # print(completion.choices[0].message.content)
-        return completion.choices[0].message.content
-
     def create_synth_inst(self, system_prompt, prompt, steps, example_pr, base_url, base_model):
         retry_max = 10
         try:
             while True:
                 try:
-                    synth_pr = self.pp_regex(self.pp_query(base_url=base_url, model=base_model, system=system_prompt,
-                                            prompt=prompt,
-                                            api_key="",
-                                            args={"universal_prompt": UNIVERSAL_FORMAT_TXT, 
-                                                "agent_steps": json.dumps(steps),
-                                                "demonstration_issue": example_pr}))
+                    synth_pr = pp_regex(pp_query(base_url=base_url, model=base_model, system=system_prompt,
+                                                    prompt=prompt,
+                                                    api_key="",
+                                                    args={"agent_steps": json.dumps(steps),
+                                                            "demonstration_issue": example_pr}))
                     # Only exit if 1) successful regex 2) no more retries
                     if synth_pr or retry_max == 0:
                         break
@@ -614,7 +529,7 @@ class RunBatch:
     def _run_instance_pipeline(self, instance: BatchInstance) -> AgentRunResult:
         retries = 3
         for i in range(retries):
-            print(f"{instance.problem_statement.id}: RUN PIPELINE {i}")
+            print(f"{instance.problem_statement.id}: pipeline attempt {i+1}/{retries}")
             output_dir = Path(self.output_dir) / instance.problem_statement.id
             if output_dir.exists():
                 shutil.rmtree(output_dir)
@@ -648,13 +563,7 @@ class RunBatch:
             is_good_patch = False
             try:
                 # Here are different prompts
-                if not self._specialized_prompts:
-                    agent.templates.instance_template = random.sample(INITIAL_PROMPT_OPTIONS, 1)[0]
-                else:
-                    if self._pipeline_repo == "sphinx":
-                        agent.templates.instance_template = random.sample(SPHINX_PROMPT_OPTIONS, 1)[0]
-                    else:
-                        raise RuntimeError("invalid specialized prompt repo")
+                agent.templates.instance_template = random.sample(ROLLOUT_ONE_PROMPTS, 1)[0]
 
                 # We add handling to load a previous simulated trajectory in directly as context.
                 extra_fields = instance.problem_statement.get_extra_fields()
@@ -665,23 +574,21 @@ class RunBatch:
                     env=env,
                     output_dir=output_dir
                 )
-                #  system, prompt, model, base_url="", api_key=""
                 metadata_file = output_dir / f"{instance.problem_statement.id}.synth"
-                # Need get exact initial prompt and agent steps
                 is_good_patch_retry = 3
                 steps_truncation = 0
                 agent_trajectory = parse_trajectory(result.trajectory)
                 while True:
                     try:
-                        is_good_patch_response = self.pp_query(system="You are a helpful assistant who can analyze code.", 
+                        is_good_patch_response = pp_query(system="You are a helpful assistant who can analyze code.", 
                                                             prompt=CHECK_SYNTHETIC_TRAJ_PROMPT,
                                                             model=self.agent_config.model.name,
                                                             base_url=self.agent_config.model.api_base,
                                                             api_key=self.agent_config.model.api_key, args={"agent_steps": json.dumps(agent_trajectory[steps_truncation:]),
-                                                                                                        "initial_prompt": result.agent_history[1]["content"]}).lower()
+                                                                                                            "initial_prompt": result.agent_history[1]["content"]}).lower()
                     except openai.BadRequestError as e:
                         print(f"Retrying: {e}")
-                    parsed_is_good_patch = self.pp_regex(is_good_patch_response)
+                    parsed_is_good_patch = pp_regex(is_good_patch_response)
                     print(f"{instance.problem_statement.id}: {is_good_patch_response}")
                     if parsed_is_good_patch:
                         if parsed_is_good_patch[0].strip().lower() == "yes":
@@ -692,21 +599,12 @@ class RunBatch:
                         steps_truncation += len(agent_trajectory) // 4
                         if is_good_patch_retry == 0:
                             break
-                # system_prompt, prompt, steps, example_pr, base_url, base_model)
-                if self._pipeline_repo == "django":
-                    demonstrations = DJANGO_DEMONSTRATION_ISSUES
-                elif self._pipeline_repo == "sympy":
-                    demonstrations = SYMPY_DEMONSTRATION_ISSUES
-                elif self._pipeline_repo == "sphinx":
-                    demonstrations = SPHINX_DEMONSTRATION_ISSUES
-                else:
-                    demonstrations = ALL_DEMONSTRATION_ISSUES
                 synth_pr = self.create_synth_inst(system_prompt="You are a helpful assistant who can analyze code.",
-                                                prompt=UNIVERSAL_INSTANCE_PROMPT,
-                                                steps=agent_trajectory[steps_truncation:],
-                                                example_pr=random.sample(demonstrations, 1)[0],
-                                                base_url=self.agent_config.model.api_base,
-                                                base_model=self.agent_config.model.name)
+                                                    prompt=SYNTHETIC_TRAJ_PROMPT,
+                                                    steps=agent_trajectory[steps_truncation:],
+                                                    example_pr=random.sample(self._demonstration_issues, 1)[0],
+                                                    base_url=self.agent_config.model.api_base,
+                                                    base_model=self.agent_config.model.name)
                 with open(metadata_file, "w") as f:
                     json.dump({"is_good_patch": is_good_patch, 
                             "synth_pr": synth_pr}, 

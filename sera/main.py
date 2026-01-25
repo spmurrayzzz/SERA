@@ -83,7 +83,8 @@ class Experiment:
         print(OmegaConf.to_yaml(cfg))
         stage_one_fp = format_and_save(config=cfg, traj_dir=self.stage_one_output_dir, report_path=None, out_dir=self.folder.data_dir)
         stage_two_fp = format_and_save(config=cfg, traj_dir=self.stage_two_output_dir, report_path=self.report_fp, out_dir=self.folder.data_dir)
-
+        print(f"Stage One: {stage_one_fp}")
+        print(f"Stage Two: {stage_two_fp}")
     def _run_pipeline(self, cfg: DictConfig, stage_idx: int = -1) -> None:
         self._run_generate(self.general_cfg.generate, skip=stage_idx > 0)
         self._run_distill_one(self.general_cfg.distill, skip=stage_idx > 1)
@@ -95,7 +96,8 @@ class Experiment:
 # Runner
 # ----- (ask danny?)
 # TODO: fix sweagent and add way to get personal prs
-# TODO: configs for swebench, example usecases
+# TODO: configs for swebench, example usecases, then I can also use these to test functionality
+# TODO: set constants, parent dirs
 # TODO: uv install
 # TODO: submit open source request
 # -----

@@ -1,4 +1,4 @@
-# python sera/main.py stage=distill_stage_two name=testsweagentdjango
+# USAGE: python sera/main.py --config-name config_specialize_personal stage=pipeline name=test
 
 # TODO: Move as much as can to defaults so this can be as slim as possible
 
@@ -79,6 +79,8 @@ distill:
   stage_two_config_name: qwen
   sweagent_wrapper_config:
     num_workers: 24
+  args:
+    pipeline_repo: sera/datagen/data/metadata/test_custom_prs.jsonl
 
 postprocess:
   tool_call_format: hermes

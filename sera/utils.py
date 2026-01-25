@@ -80,11 +80,13 @@ def pp_query(system, prompt, model, base_url="", api_key="", max_tokens=4096, re
         task_prompt = prompt
     # print("Prompt:", task_prompt)
     # Make a request
+    if model.startswith("openai/"):
+        model = model[len("openai/"):]
     while True:
         try:
             completion = client.chat.completions.create(
                 model=model,
-                temperature=0.0,
+                temperature=0.6,
                 max_tokens=max_tokens,
                 messages=[
                     {"role": "system", "content": system},

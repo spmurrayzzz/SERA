@@ -31,7 +31,6 @@ from sweagent.agent.models import (
     InstanceStats,
     ModelConfig,
     get_model,
-    CustomFormatError
 )
 from sweagent.agent.problem_statement import ProblemStatement, ProblemStatementConfig
 from sweagent.agent.reviewer import (
@@ -1110,9 +1109,6 @@ class DefaultAgent(AbstractAgent):
                 step.thought = step.output
             # Attach the step object to the exception
             e.step = step  # type: ignore
-            if isinstance(e, CustomFormatError):
-                self.logger.error("Reached maximum CustomFormatErrors so exiting with context exception...")
-                raise ContextWindowExceededError # Handle CustomFormatError that propagates up as a contex tindow error
             raise
 
     def forward_with_handling(self, history: list[dict[str, str],]) -> StepOutput:
@@ -1270,7 +1266,22 @@ class DefaultAgent(AbstractAgent):
             "exit_format",
             "Exit due to repeated format/blocklist/bash syntax errors",
         )
-        
+
+    def add_step_to_trajectory(self, step: StepOutput) -> None:
+        trajectory_step = TrajectoryStep(
+            {
+                "action": step.action,
+                "observation": step.observation,
+                "response": step.output,
+                "thought": step.thought,
+                "execution_time": step.execution_time,
+                "state": step.state,
+                "messages": self.messages,
+                "extra_info": step.extra_info,
+            },
+        )
+        self.trajectory.append(trajectory_step)        
+
     def step(self, tools = {}) -> StepOutput:
         """Run a step of the agent. This is a wrapper around `self.forward_with_handling`
         with additional bookkeeping:
