@@ -1,0 +1,1 @@
+torchrun --standalone --nproc_per_node=8 train_unsloth_lora.py -c train_config/unsloth_qwen3_moe_qlora.yaml

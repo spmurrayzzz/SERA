@@ -1,0 +1,43 @@
+# To use this, download llamafactory from source and add the target dataset to the dataset list.
+### model
+model_name_or_path: Qwen3-32B
+trust_remote_code: true
+
+### method
+stage: sft
+do_train: true
+finetuning_type: full
+deepspeed: examples/deepspeed/ds_z3_config.json  # choices: [ds_z0_config.json, ds_z2_config.json, ds_z3_config.json]
+flash_attn: fa2
+disable_gradient_checkpointing: false
+
+### dataset
+dataset: # FILL IN
+template: qwen3
+cutoff_len: 32768
+overwrite_cache: true
+preprocessing_num_workers: 2
+dataloader_num_workers: 1
+
+### output
+output_dir: # FILL IN
+logging_steps: 1
+save_steps: 1000
+plot_loss: true
+overwrite_output_dir: true
+save_only_model: true
+report_to: wandb  # choices: [none, wandb, tensorboard, swanlab, mlflow]
+run_name: qwen3_sft_experiment
+
+### train
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 1
+learning_rate: 1.0e-5
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.0958 # We set this to whatever ratio is needed to maintain a 48 step warmup
+bf16: true
+ddp_timeout: 180000000
+resume_from_checkpoint: null
+weight_decay: 0.01
+use_unsloth_gc: True

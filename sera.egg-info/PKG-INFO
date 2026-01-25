@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: sera
+Version: 0.1.0
+Requires-Python: >=3.12
+Requires-Dist: swesmith==0.0.7
+Requires-Dist: hydra-core==1.4.0.dev1
+Requires-Dist: omegaconf>=2.4.0.dev4
+Requires-Dist: anthropic==0.76.0
+Requires-Dist: networkx==3.6.1

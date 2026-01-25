@@ -1,0 +1,1 @@
+axolotl train $1

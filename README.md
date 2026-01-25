@@ -1,0 +1,1 @@
+Need to run `pip install flash-attn==2.7.4.post1 --no-build-isolation` after installations to make everything work
