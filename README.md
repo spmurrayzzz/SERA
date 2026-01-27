@@ -113,3 +113,14 @@ And then the pipeline will skip the hanging trajectories and proceed to the seco
 # Training
 
 See the README.md in sera/datagen/train!
+
+# Citation
+```
+@article{sera2026,
+  title={SERA: Soft-Verified Efficient Repository Agents},
+  author={Shen, Ethan and Tormoen, Daniel and Shah, Saurabh and Farhadi, Ali and Dettmers, Tim},
+  year={2026},
+  institution={Allen Institute for AI},
+  url={https://allenai.org/papers/opencodingagents}
+}
+```
