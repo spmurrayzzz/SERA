@@ -42,7 +42,7 @@ We release several examples showing how to reproduce our experiments or run your
 python sera/main.py \
     --config-name=specialization_django \
     distill.model.name=openai/GLM-4.5-Air \
-    distill.model.url=HOSTNAME
+    distill.model.url=URL
 ```
 
 ### 2. Specialization to Personal Repositories
@@ -53,8 +53,7 @@ python sera/main.py \
 python sera/main.py \
     --config-name=specialization_personal \
     distill.model.name=openai/GLM-4.5-Air \
-    distill.model.url=HOSTNAME \
-    generate.docker.docker_org=alleninstituteofai \
+    distill.model.url=URL \
     generate.docker.gh_mirror_org=oca-repos
 ```
 
@@ -79,7 +78,8 @@ Personal repositories require a little more involvement to generate data because
 ```
 
 Right now, specialization requires a **Github organization** to store repository mirrors. We provide oca-repos as a public Github organization for mirrors,  but users should create their own if they want to generate data from private codebases. See [Creating GitHub Mirrors and Pushing Containers](#creating-github-mirrors).
-We also set a placeholder **Docker organization** to push images to. This *will fail* to push, but that does not affect the ability to run the pipeline. However, created images will need to be rebuilt every time the pipeline is rerun. If you want to avoid this, set a new Docker organization.
+
+You can also set a **Docker organization** to push images to using `generate.docker.docker_org=DOCKER_ORG`. This makes it so created images are persistent. Make sure you have push permissions for the organization you choose. Otherwise, created images will be rebuilt every time the pipeline is rerun, taking a few extra minutes.
 
 The default synthetic PRs created in the second rollout use SWE-Bench as demonstrations. In [Personal PR Issues](#personal-pr-issues), we explain how you can set the demonstrations to be your own PR issues.
 
@@ -90,7 +90,6 @@ If you want to use closed-source models, then the step of creating inference ser
 ```
 python sera/main.py \
     --config-name=specialization_anthropic \
-    generate.docker.docker_org=alleninstituteofai \
     generate.docker.gh_mirror_org=oca-repos
 ```
 
@@ -107,7 +106,7 @@ python sera/main.py \
     distill.shard=0 \
     distill.total_shards=4 \
     distill.model.name=openai/GLM-4.5-Air \
-    distill.model.url=HOSTNAME_1
+    distill.model.url=URL_1
 ```
 
 Replica 2:
@@ -117,7 +116,7 @@ python sera/main.py \
     distill.shard=1 \
     distill.total_shards=4 \
     distill.model.name=openai/GLM-4.5-Air \
-    distill.model.url=HOSTNAME_2
+    distill.model.url=URL_2
 ```
 etc.
 
@@ -130,7 +129,7 @@ We have created a mirror org on Github for everyone to use called oca-repos. How
 
 ## Continuing an Interrupted Run
 
-At large scales, generation can hang at a particular stage due to long trajectories that can take hours to complete. To handle this, we support restarting any run from an arbitrary stage.
+At large scales, some generations (< 1%) will stall the teacher model, but this is enough to prevent the pipeline from completing a distillation step. To handle this, we support restarting any run from an arbitrary stage if the user chooses to kill a stalled run.
 ```
     stage_map = {
         "pipeline": -1,
@@ -147,15 +146,13 @@ For example, if a few trajectories hang in `distill_stage_one`, you can run:
 ```
 python sera/main.py \
     --config-name=specialization_django \
-    distill.shard=0 \
-    distill.total_shards=1 \
-    "distill.models.0.model=openai/GLM-4.5-Air" \
-    "distill.models.0.url=HOSTNAME" \
+    distill.model.name=openai/GLM-4.5-Air \
+    distill.model.url=URL \
     stage=distill_stage_two
 ```
-And then the pipeline will skip the hanging trajectories and proceed to the second rollout using the successful rollouts.
+And then the pipeline will skip the hanging trajectories and proceed to the second stage using only the successful rollouts from the first stage.
 
-Alternatively, you can just rerun the initial command and as long as the experiment name matches the original run, it will pick up exactly where it left off. However, during trajectory rollouts, the final 3-5% often take significantly longer to complete, so we suggest just starting from the next stage.
+Alternatively, you can just rerun the initial command and as long as the experiment name matches the original run, it will pick up exactly where it left off instead of skipping to the next step in the pipeline.
 
 ## Personal PR Issues
 

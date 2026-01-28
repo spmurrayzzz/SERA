@@ -15,12 +15,12 @@ generate:
     - org_name: OpenHands
       last_name: OpenHands
       commits: 
-        - 29b77be807e0e6aab380d953c0d79a166df4f0cc
+        - 8c94ddbf1a62c6c760c9425e8ad748fc227c7691
         - cc8b677f3ec324fb7b9de86229f727b25741a66c
       install_cmds: 
         - "pip install -e ."
       test_cmd: null
-      python_version: 3.12
+      python_version: "3.12"
       top_level_folder:
         - openhands
     - org_name: R2E-Gym
@@ -28,6 +28,7 @@ generate:
       install_cmds: 
         - "pip install -e ."
       n_commits: 1 # How many commits to find in the last 365 days
+  
       # NOTE: You can leave top_level_folder blank for your specific repository and 
       # we will try to automatically identify it, throwing an error on failure
 

@@ -20,7 +20,7 @@ generate:
       install_cmds: # This is the default but sometimes personal repositories have their own installations
         - "pip install -e ."
       test_cmd: null
-      python_version: 3.12 # For the docker container
+      python_version: "3.12" # For the docker container
       top_level_folder:
       # The main folder to look for to parse out functions.
       # Multiple folders can be provided if the main folder changes through commits

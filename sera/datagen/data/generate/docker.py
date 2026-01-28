@@ -143,7 +143,7 @@ def create_profile_class(
         attrs["test_cmd"] = test_cmd
         annotations["test_cmd"] = str
     if python_version and language == "python":
-        attrs["python_version"] = python_version
+        attrs["python_version"] = field(default=python_version)
         annotations["python_version"] = str
 
     # Add annotations to attrs
@@ -211,6 +211,9 @@ def build_profile_image(
                     install_script = pathlib.Path("./sera/datagen/data/generate/install.sh")
                     if not install_script.exists():
                         return False, f"Install script not found at {install_script}"
+                    # Set python version env var for install.sh
+                    if hasattr(profile, 'python_version'):
+                        os.environ['SWESMITH_PYTHON_VERSION'] = profile.python_version
                     # Call try_install_py directly
                     try_install_main(
                         repo=f"{profile.owner}/{profile.repo}",
@@ -321,7 +324,7 @@ def build_container(
                 profile,
                 language=config['language'],
                 create_mirror=True,
-                push_image=True,
+                push_image=True if org_dh else False,
                 force=True, # TODO: If there's any error in building that user fixes, this allows a retry. Make it a toggle
                 package_name=package_name
             )
