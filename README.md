@@ -1,5 +1,5 @@
 
-Note: Expect many helpful updates in the next few days as we improve the codebase and clean up the pipeline!
+Note: This codebase is being actively worked on, so expect many helpful updates in the next few days as we improve the codebase and clean up the pipeline!
 
 Use SERA models directly in Claude Code: https://github.com/allenai/sera-cli.
 
@@ -114,3 +114,14 @@ And then the pipeline will skip the hanging trajectories and proceed to the seco
 # Training
 
 See the README.md in sera/datagen/train!
+
+# Citation
+```
+@article{sera2026,
+  title={SERA: Soft-Verified Efficient Repository Agents},
+  author={Shen, Ethan and Tormoen, Daniel and Shah, Saurabh and Farhadi, Ali and Dettmers, Tim},
+  year={2026},
+  institution={Allen Institute for AI},
+  url={https://allenai.org/papers/opencodingagents}
+}
+```
