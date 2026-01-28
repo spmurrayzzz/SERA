@@ -36,14 +36,8 @@ generate:
       instance_id: sympy__sympy-24661 
 
 distill:
-  models:
-  - model: openai/GLM-4.5-Air
-    url: null # <--- FILL IN
-  - model: openai/GLM-4.5-Air
-    url: null # <--- FILL IN
-  - model: openai/GLM-4.5-Air
-    url: null # <--- FILL IN
-  - model: openai/GLM-4.5-Air
+  model:
+    name: openai/GLM-4.5-Air
     url: null # <--- FILL IN
   sweagent_wrapper_config:
     num_workers: 24

@@ -17,7 +17,7 @@ class SWEAgentWrapperConfig:
 @dataclass
 class ModelConfig:
     """Configuration for a single model endpoint."""
-    model: str = ""
+    name: str = ""
     url: Optional[str] = ""
 
 @dataclass
@@ -81,14 +81,13 @@ class GenerateConfig:
 @dataclass
 class DistillConfig:
     """Configuration for distillation process."""
-    models: List[ModelConfig] = field(default_factory=list)
-    config_name: str = "e2e"
+    model: ModelConfig = field(default_factory=ModelConfig)
     sweagent_wrapper_config: SWEAgentWrapperConfig = field(default_factory=SWEAgentWrapperConfig)
     args: Dict[str, Any] = field(default_factory=dict)
-    shard: int = -1
-    total_shards: int = -1
-    stage_one_config_name: str = MISSING
-    stage_two_config_name: str = MISSING
+    shard: int = 0
+    total_shards: int = 1
+    stage_one_config_name: str = "e2e"
+    stage_two_config_name: str = "qwen"
 
 @dataclass
 class EvalConfig: # Handle only resolved here
@@ -111,7 +110,7 @@ class SeraConfig:
     experiment_dir: str = "./experiments"
     metadata_dir: str = "./metadata"
     sweagent_cfg_dir: str = "./sera/configs/sweagent/"
-    sweagent_cfgs: List[str] = field(default_factory=list)
+    sweagent_cfgs: List[str] = field(default_factory=lambda: ["e2e", "qwen"])
     generate: GenerateConfig = field(default_factory=GenerateConfig)
     distill: DistillConfig = field(default_factory=DistillConfig)
     postprocess: PostprocessConfig = field(default_factory=PostprocessConfig)

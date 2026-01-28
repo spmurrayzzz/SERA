@@ -14,7 +14,7 @@ Arguments:
     -c, --count     Number of issues to scrape (default: 100)
 
 Example:
-    python scrape_github.py -o anthropics -n claude-code -c 50
+    python scrape_github.py -o SWE-agent -n SWE-agent -c 50
 
 Environment:
     Requires GITHUB_TOKEN or GH_TOKEN to be set for API authentication.

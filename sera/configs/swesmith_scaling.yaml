@@ -372,14 +372,8 @@ generate:
     source: swesmith
 
 distill:
-  models:
-  - model: openai/GLM-4.5-Air
-    url: null # <--- FILL IN
-  - model: openai/GLM-4.5-Air
-    url: null # <--- FILL IN
-  - model: openai/GLM-4.5-Air
-    url: null # <--- FILL IN
-  - model: openai/GLM-4.5-Air
+  model:
+    name: openai/GLM-4.5-Air
     url: null # <--- FILL IN
   sweagent_wrapper_config:
     num_workers: 24

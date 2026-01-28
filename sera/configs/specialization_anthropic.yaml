@@ -27,22 +27,18 @@ generate:
       last_name: R2E-Gym
       install_cmds: 
         - "pip install -e ."
+      n_commits: 1 # How many commits to find in the last 365 days
       # NOTE: You can leave top_level_folder blank for your specific repository and 
       # we will try to automatically identify it, throwing an error on failure
 
       # NOTE: If commits aren't specified, we automatically "lookback" for 365 days and choose
-      # five equally spaced commits in that time frame to create containers on.
+      # five equally spaced commits in that time frame to create containers on. This can be overriden with
+      # n_commits.
 
 distill:
-  models:
-  - model: anthropic/claude-sonnet-4-20250514
-    url: null # <-- LEAVE EMPTY
-  - model: anthropic/claude-sonnet-4-20250514
-    url: null # <-- LEAVE EMPTY
-  - model: anthropic/claude-sonnet-4-20250514
-    url: null # <-- LEAVE EMPTY
-  - model: anthropic/claude-sonnet-4-20250514
-    url: null # <-- LEAVE EMPTY
+  model:
+      name: anthropic/claude-sonnet-4-20250514 # or openai/OPENAI_MODEL_NAME
+      url: null # <-- LEAVE EMPTY
   sweagent_wrapper_config:
     num_workers: 24
 
