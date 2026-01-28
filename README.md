@@ -1,6 +1,6 @@
 ![SERA](assets/SERA.jpg)
 
-Use SERA models directly in Claude Code: https://github.com/allenai/sera-cli.
+**Easily Setup SERA in Claude Code:** https://github.com/allenai/sera-cli.
 
 # Installation
 
