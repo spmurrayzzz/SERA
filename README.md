@@ -174,11 +174,13 @@ See the README.md in [sera/datagen/train](sera/datagen/train).
 
 # Citation
 ```
-@article{sera2026,
-  title={SERA: Soft-Verified Efficient Repository Agents},
-  author={Shen, Ethan and Tormoen, Daniel and Shah, Saurabh and Farhadi, Ali and Dettmers, Tim},
-  year={2026},
-  institution={Allen Institute for AI},
-  url={https://allenai.org/papers/opencodingagents}
+@misc{shen2026serasoftverifiedefficientrepository,
+      title={SERA: Soft-Verified Efficient Repository Agents}, 
+      author={Ethan Shen and Danny Tormoen and Saurabh Shah and Ali Farhadi and Tim Dettmers},
+      year={2026},
+      eprint={2601.20789},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2601.20789}, 
 }
 ```
